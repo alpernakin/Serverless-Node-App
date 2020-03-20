@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "preserveConstEnums": true,
+        "strictNullChecks": true,
+        "sourceMap": true,
+        "allowJs": true,
+        "esModuleInterop": true,
+        "module": "commonjs",
+        // stay with es2017 that is required for sequelize
+        "target": "es2017",
+        "outDir": ".build",
+        "moduleResolution": "node",
+        "experimentalDecorators": true,
+        "lib": [
+            "es2015"
+        ],
+        "rootDir": "./"
+    }
+}
