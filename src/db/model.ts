@@ -49,6 +49,11 @@ export const sequelize = new Sequelize(env.mysql.database, env.mysql.user, env.m
     models: [Node, NodeName],
     define: {
         timestamps: false
+    },
+    pool: {
+        max: 10,
+        min: 1,
+        idle: 10000
     }
 });
 // we don't need an id in node name table

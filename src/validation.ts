@@ -1,18 +1,34 @@
 /** prototype for details property of handler error */
 export interface ValidationErrorDetails {
+    /** 
+     * the field validation failed
+     * e.g. minimum 
+    */
     keyword: string;
+    /** 
+     * the path in the schema 
+     * e.g. .queryStringParameters.page_num
+     */
     dataPath: string;
-    schemaPath: string;
-    params: any[];
+    /**
+     * extras, giving missing property
+     */
+    params?: { missingProperty: string }
+    /**
+     * default message
+     */
     message: string;
 }
 
 /** prototype for matching validation constraints with messages */
 export interface ValidationErrorMessage {
     /** the property constrained */
-    property: string;
-    /** the possible cases / constraints  */
-    constraints: string[];
+    target?: string;
+    /** 
+     * the possible cases / constraints. 
+     * if constraints is null, then it applies all cases 
+     */
+    constraints?: string[];
     /** corresponding error message */
     message: string;
 }
@@ -20,7 +36,7 @@ export interface ValidationErrorMessage {
 /**
  * prototype for validation handling.
  * the main goal is to match the validation rules with the messages.
- * eventually try to produce a meaningful validation messages
+ * eventually try to produce meaningful validation messages
  */
 export interface IValidationHandler {
     /** messages rule set */
@@ -29,45 +45,49 @@ export interface IValidationHandler {
      * finds error messages for the given validation details
      * @param details error details collection about the validation
      */
-    handleAll: (...details: ValidationErrorDetails[]) => string[];
-    /**
-     * finds error messages for a single details
-     * @param details error details about the validation
-     */
-    handleSingle: (details: ValidationErrorDetails) => string[];
+    handle: (...details: ValidationErrorDetails[]) => string[];
 }
 
 export class ValidationHandler implements IValidationHandler {
 
     messages: ValidationErrorMessage[];
 
-    constructor (messages: ValidationErrorMessage[]) {
+    constructor(...messages: ValidationErrorMessage[]) {
         this.messages = messages;
     }
 
-    handleAll(...details: ValidationErrorDetails[]): string[] {
+    handle(...details: ValidationErrorDetails[]): string[] {
         // collect the messages for all details
-        let messageCollection = details.map(x => this.handleSingle(x));
-        // reduce and return the messages
-        return messageCollection.reduce((acc, curr) => {
-            // if curr has value
-            if (curr) curr.forEach(x => acc.push(x));
-            return acc;
-        }, [])
+        return details.map(x => this.handleSingle(x));
     }
 
-    handleSingle(details: ValidationErrorDetails): string[] {
-        console.log(details);
+    /**
+     * finds error messages for a single details
+     * @param details error details about the validation
+     */
+    private handleSingle(details: ValidationErrorDetails): string {
         // the format will be like '.queryStringParameters.page_size'
         let dataPathParts = details.dataPath.split('.');
         // if the data path can not be serialized then we cannot know the message
-        if (!dataPathParts || !dataPathParts.length) return [""];
-        // the last one will point the property
-        let property = dataPathParts[dataPathParts.length - 1];
+        if (!dataPathParts || !dataPathParts.length) return details.message;
+        // the last one will point the target
+        let target = dataPathParts[dataPathParts.length - 1];
         // keyword points the case
-        let _case = details.keyword;
+        let constraint = details.keyword;
+        // try to find a message in the list, otherwise return null
+        let getMessageBy = (predicate: (item: ValidationErrorMessage) => boolean | undefined) => {
+            let indexOfMatch = this.messages.findIndex(predicate);
+            return indexOfMatch !== -1 ? this.messages[indexOfMatch].message : null;
+        }
 
-        return this.messages.filter(m => m.constraints.includes(_case) && m.property === property).map(m => m.message);
+        // first check items matching both constraint and (target = could be missing property or target itself)
+        return getMessageBy(x => x.constraints?.includes(constraint) && (x.target === target || x.target === details.params?.missingProperty)) ||
+            // else check items matching only constraints
+            getMessageBy(x => x.constraints?.includes(constraint)) ||
+            // eventually check with only target, whose constrainsts is null
+            getMessageBy(x => !x.constraints && x.target === target) ||
+            // finally return default message
+            details.message;
     }
 }
 
@@ -91,10 +111,10 @@ export const rules = {
             required: ['queryStringParameters']
         },
         messages: [
-            { property: 'id_node', constraints: ['required'], message: 'Missing mandatory params' },
-            { property: 'language', constraints: ['required'], message: 'Missing mandatory params' },
-            { property: 'page_num', constraints: ['minimum'], message: 'Invalid page number requested' },
-            { property: 'page_size', constraints: ['minimum', 'maximum'], message: 'Invalid page size requested' },
+            { constraints: ['required'], message: 'Missing mandatory params' },
+            { target: 'node_id', constraints: ['required'], message: 'Invalid node id' },
+            { target: 'page_num', constraints: ['minimum'], message: 'Invalid page number requested' },
+            { target: 'page_size', constraints: ['minimum', 'maximum'], message: 'Invalid page size requested' },
         ]
     }
 };

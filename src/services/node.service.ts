@@ -1,9 +1,11 @@
 import { Sequelize } from "sequelize-typescript";
-import { Node, sequelize } from "../db/model";
-import { SearchNodeRequest } from "../models/request.model";
-import { Op } from "sequelize";
+import { sequelize } from "../db/model";
+import { INodeService, ISearchNodeRequest, ISearchNodeResultItem } from "../models/node.prototype";
+import { QueryBuilder } from "../db/query.builder";
+import { QueryTypes } from "sequelize";
+import { SearchNodeResultItem } from "../models/node.model";
 
-export class NodeService {
+export class NodeService implements INodeService {
 
     private sequlize: Sequelize;
 
@@ -11,54 +13,31 @@ export class NodeService {
         this.sequlize = sequelize;
     }
 
-    private log(domain: string, error: Error) {
-        console.log(`${domain} [${new Date().toUTCString()}]: ${error.message}`);
-    }
-
-    async search(request: SearchNodeRequest) {
-        try {
-            let keywordLike = `%${request.searchKeyword}%`;
-            return this.sequlize.model(Node).findAll({
-                attributes: ["idNode"],
-                where: {
-                    idNode: request.nodeId,
-                },
-                include: [
-                    {
-                        model: sequelize.models["NodeName"],
-                        attributes: ["nodeName"],
-                        where: {
-                            language: request.language,
-                            nodeName: { [Op.like]: keywordLike }
-                        },
-                    }
-                ]
-            });
-        }
-        catch (error) {
-            // todo log the errors
-            this.log('[NodeService].[Search]', error);
-
-            throw error;
-        }
-    }
-
     /**
-     * finds out if any node exists with the given id
-     * @param nodeId the primary key node id
+     * search nodes
+     * @param request parameters to search nodes
      */
-    async exists(nodeId: number) {
+    async search(request: ISearchNodeRequest): Promise<ISearchNodeResultItem[]> {
         try {
-            let node = await this.sequlize.model(Node).findByPk(nodeId);
-            // if the given node is not null or undefined
-            return !!node;
+            let queryResults = await this.sequlize.query(QueryBuilder.createNodeSearchQueryByPage({
+                nodeId: request.nodeId,
+                language: request.language,
+                searchKeyword: request.searchKeyword,
+                after: request.pageNum * request.pageSize,
+                size: request.pageSize
+            }), { type: QueryTypes.SELECT });
+
+            if (!queryResults) return [];
+
+            return queryResults.map(node => new SearchNodeResultItem({
+                nodeId: node["node_id"],
+                name: node["name"],
+                childrenCount: node["children_count"]
+            }));
         }
         catch (error) {
-            // todo log the errors
-            this.log('[NodeService].[Exists]', error);
-
+            error["domain"] = '[NodeService].[Search]';
             throw error;
         }
     }
 }
-export const nodeServiceInstance = new NodeService(sequelize);
