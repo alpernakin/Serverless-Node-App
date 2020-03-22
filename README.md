@@ -61,7 +61,7 @@ Success
     name: string,
     /** the number of children of the node */
     children_count: number
-  }
+  }[]
 }
 ```
 
