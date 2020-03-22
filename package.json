@@ -4,7 +4,7 @@
     "description": "",
     "main": "./src/handler.js",
     "scripts": {
-        "set aws credentials": "serverless config credentials --provider aws --key <your_acces_key> --secret <your_secret_key>",
+        "aws_creds": "serverless config credentials --provider aws --key <your_acces_key> --secret <your_secret_key>",
         "deploy": "serverless deploy",
         "offline": "serverless offline",
         "test": "mocha -r ts-node/register test/*.test.ts"

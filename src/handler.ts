@@ -42,15 +42,20 @@ const handler = middy(search);
 handler.use(validator(rules.searchNode));
 // inject a custom validation handler
 handler["validationHandler"] = new ValidationHandler(...rules.searchNode.messages);
-// error handling middleware
-handler.onError((handler, next) => {
+/**
+ * middleware error handling function.
+ * exported for testing
+ */
+export const handleError = (handler, next) => {
     console.error(`${handler.error["domain"] || "No Domain"} ${handler.error.message}`);
-    // default error response declaration
+    // default error response
     let errResponse = errorResponse(handler.error.message, 500);
     // find out the error details
     let errorDetails = <ValidationErrorDetails[]>handler.error['details'];
     // get the injected validation handler
     let validationHandler = <IValidationHandler>handler["validationHandler"];
+
+    console.error(handler)
     // it means that the error is about validation
     if (handler.error.message === 'Event object failed validation' && errorDetails && validationHandler)
         errResponse = errorResponse(validationHandler.handle(...errorDetails), 400);
@@ -58,6 +63,8 @@ handler.onError((handler, next) => {
     handler.response = errResponse;
 
     return next();
-});
+}
+// inject error handler
+handler.onError((handler, next) => handleError(handler, next));
 // well ready!
 export { handler as searchHandler };
