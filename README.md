@@ -15,8 +15,6 @@ To test `npm run test`
 
 ### Base URL
 
-AWS `https://91o9jm6ax9.execute-api.eu-central-1.amazonaws.com/dev/`
-
 Local `http://localhost:4040`, see `offline httpPort` in [serverless.yml](https://github.com/alpernakin/Serverless-Node-App/blob/master/serverless.yml)
 
 #### api/search
@@ -45,7 +43,7 @@ Method GET
 
   The size of the page / nodes returned by API
   
-**Example** `https://91o9jm6ax9.execute-api.eu-central-1.amazonaws.com/dev/api/search?node_id=5&language=english&search_keyword=marketing&page_num=0&page_size=10`
+**Example** `https://localhost:4040/api/search?node_id=5&language=english&search_keyword=marketing&page_num=0&page_size=10`
 
 **Response**
 
